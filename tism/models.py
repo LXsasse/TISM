@@ -8,7 +8,7 @@ class seqtofunc_cnn(nn.Module):
 
         kpadding = int(l_kernels*padding)
         self.conv1 = nn.Sequential(nn.Conv1d(n_features, n_kernels, kernel_size = l_kernels, bias = False, stride = 1, padding = kpadding),nn.GELU())
-        currlen = l_seqs+2*kpadding-15+1
+        currlen = l_seqs+2*kpadding-l_kernels+1
 
         convpadding = int(l_conv*padding)
         convs_ = []
@@ -33,6 +33,42 @@ class seqtofunc_cnn(nn.Module):
         pred = self.head(pred)
         return pred
 
+
+class seqtofunc_cnn_yuzu(nn.Module):
+    def __init__(self, n_features, l_seqs, n_kernels = 200, l_kernels = 15, l_conv=7, padding = 2/3, N_convs = 3, pooling_size = 3, n_tracks = 1, **kwargs):
+        super(seqtofunc_cnn_yuzu, self).__init__()
+        print("Init seqtofunc_cnn_yuzu")
+        kpadding = int(l_kernels*padding)
+        print('padding', kpadding)
+        self.conv1 = nn.Sequential(nn.Conv1d(n_features, n_kernels, kernel_size = l_kernels, bias = False, stride = 1, padding = kpadding),nn.GELU())
+        currlen = l_seqs+2*kpadding-l_kernels+1
+        print('after first conv', currlen)
+        convpadding = int(l_conv*padding)
+        convs_ = []
+        for i in range(N_convs):
+            convs_.append(nn.Conv1d(n_kernels, n_kernels, kernel_size = l_conv, bias = False, stride = 1, padding = convpadding))
+            convs_.append(nn.GELU())
+            convs_.append(nn.AvgPool1d(pooling_size))
+            currlen = (currlen+2*convpadding - l_conv + 1)//pooling_size
+        
+        self.convpools = nn.Sequential(*convs_)
+        print('after second conv', currlen)
+        
+        currdim = currlen * n_kernels
+        print('fully connected dimension' , currdim)
+        self.final_conv = nn.Sequential(nn.Conv1d(n_kernels, n_kernels*currlen, kernel_size = currlen, bias = False), nn.GELU(), nn.Conv1d(currdim, currdim, kernel_size = 1, bias = False), nn.GELU(), nn.Conv1d(currdim, currdim, kernel_size = 1, bias = False), nn.GELU())
+        #self.fully_connects = nn.Sequential(nn.Linear(currdim, currdim), nn.GELU(),nn.Linear(currdim, currdim), nn.GELU())
+        #self.head = nn.Linear(currdim, n_tracks)
+        self.head = nn.Conv1d(currdim, 1, kernel_size = 1, bias = False)
+        
+    def forward(self, x, **kwargs):
+        pred = self.conv1(x)
+        pred = self.convpools(pred)
+        pred = self.final_conv(pred)
+        #pred = pred.sum(dim = -1)
+        #pred = self.fully_connects(pred)
+        pred = self.head(pred)
+        return pred
 
 
 class LambdaBase(nn.Sequential):

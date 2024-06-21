@@ -52,13 +52,11 @@ dependencies:
   - ncurses=6.4=h6a678d5_0
   - nettle=3.7.3=hbbd107a_1
   - networkx=3.1=py38h06a4308_0
-  - numpy=1.24.3=py38hf6e8229_1
   - numpy-base=1.24.3=py38h060ed82_1
   - openh264=2.1.1=h4ff587b_0
   - openjpeg=2.4.0=h3ad879b_0
   - openssl=3.0.14=h5eee18b_0
   - pillow=10.3.0=py38h5eee18b_0
-  - pip=24.0=py38h06a4308_0
   - pysocks=1.7.1=py38h06a4308_0
   - python=3.8.19=h955ad1f_0
   - pytorch=2.3.1=py3.8_cpu_0
@@ -80,4 +78,20 @@ dependencies:
   - yaml=0.2.5=h7b6447c_0
   - zlib=1.2.13=h5eee18b_1
   - zstd=1.5.5=hc292b87_2
+  - pip:
+      - joblib==1.4.2
+      - llvmlite==0.41.1
+      - numba==0.58.1
+      - numpy==1.24.4
+      - pandas==2.0.3
+      - pip==24.1
+      - pyfaidx==0.8.1.1
+      - python-dateutil==2.9.0.post0
+      - pytz==2024.1
+      - scikit-learn==1.3.2
+      - six==1.16.0
+      - tangermeme==0.2.1
+      - tqdm==4.66.4
+      - tzdata==2024.1
+      - yuzu-ism==0.0.1
 prefix: /home/alexander/miniconda3/envs/tismenv

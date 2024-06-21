@@ -6,31 +6,74 @@ import time
 from scipy.stats import pearsonr
 import matplotlib.pyplot as plt 
 
-from tism.models import Beluga
+from tism.models import seqtofunc_cnn
 from tism.tangermeme_utils import plot_attribution, ism, deepliftshap
 from tism.torch_grad import correct_multipliers, takegrad
 
-from tangermeme.utils import random_one_hot
+from tangermeme.utils import one_hot_encode
 from tangermeme.ersatz import substitute
 
 if __name__ == '__main__':
 
-    parameters = '../data/deepsea.beluga.pth'
-    model = Beluga()
-    model.load_state_dict(torch.load(parameters))
+    #parameters = '../data/deepsea.beluga.pth'
+    #model = Beluga()
+    #model.load_state_dict(torch.load(parameters))
+    #model.eval()
+    
+    #N=1
+    #b=4
+    #input_length = 2000
+    
+    #x = random_one_hot((N, b, input_length), random_state = 1).type(torch.float32)
+    #x = substitute(x, "CTCAGTGATG")
+    #x = x.detach().cpu().numpy()
+    
+    
+    #track = 267
+    #vis_seq = 0
+    
+        # model parameter pth file 
+    parameters = '../data/Quickfitmodel_parameter.pth'
+    
+    # This model was trained on ATAC-seq data from https://www.pnas.org/doi/10.1073/pnas.2011795117
+    # bed files and ATAC-seq data can be downloaded from here:
+    # https://github.com/smaslova/AI-TAC/
+    
+    # Know your model's length of input sequences
+    input_length = 251
+    # DNA sequence with A,C,G,T
+    b = 4
+    
+    model = seqtofunc_cnn(b, input_length, n_kernels = 200, N_convs = 3, pooling_size = 3, n_tracks = 81)
+    params = torch.load(parameters, map_location=torch.device('cpu'))
+    model.load_state_dict(params)
     model.eval()
     
-    N=1
-    b=4
-    input_length = 2000
     
-    x = random_one_hot((N, b, input_length), random_state = 1).type(torch.float32)
-    x = substitute(x, "CTCAGTGATG")
-    x = x.detach().cpu().numpy()
+    # Sequences with signal
+    seqs = [ 'TAAAACAGTTTACAGTAGGCTGGTAAGAGCCTGCAGCTGGAGGGTTCAGGGTCTTCCAATTATGCAAGTCTACTCTTCCCCAGCGTATGACTTTGAGAATTACTTCCTCTTTCCACAGGCTCAACAAGCTACTCAGAGCAGGTCAAGGAGGGAACAGAGAGTCAACTGCTTCCTCTTCCTGCTGTTGGCTGAGATGATAGGTGAAAGTTTTTAATTTCTCTAGGTGAGTTGATTAAGCCTAAAAGATTTCC', 'TCCTCCTGGACTGTAATGGCCTAGGGTGAAAGTTTAGTGTCTCATGGGAGTCTGGTCTTGAGCAATCAGGCTGGACCCCAAGGGTAAGAAGCCTCCACTCTTCCCTTGAGACCTTGTGGTCTCTTGTGGACTTTGAAGAAAGGATATTTTCATCCACCCATCCCTTGAGGTCGCAGAATCCTGTGTTTAGGGCTTGGCATCTGTCCTGGGTGATCTCAGGCCTTCACCTCCTGCTCTCACTGCAGAGCCTG',
+    'TGGATTTTGATCGAGTTAATTTTAAAAAGACACTTTAGTTTGCTGTGCTAATTAATATTTTCATTAAAGTACTGCATAGTATTGCATAGACATTTGTTCTGACCCATTTAAAACCTCACATTCTCGTATTCTCTGTCCTGTGACCTACATAAAGTCGTAGGTAATGTTCTTAATATTTAGAGCTTTTGTAGTCTTGTACACAATAAGAGGTGTAACCAGGACTGTAATAAAAAGTTTCCTTAAAACAATAA',
+    'GCTGTACCCAAGTCCTCTTCAAGAGCAGTACACAACTCTTAATGACCAGGTCACCTCTCCAGCCCTCCAATATCTTTCTTTGTGATTGAATCTAGGTCATTGTTCTTCCTGTGCGGCTTTTGGGTTTCTGTGTATGAGCTCAGCTAGCTCCTCTAACCAACAGGACCCAAGTAGGACAGCCCCAGGGACTGAGTTCTCAGCACTCTGGTTTTCAAACTACATGTGCACAAGCGTCCTTTGTTTTGTCCGGA',
+    'AAATACAACCATCCATTGCTTAGTGACAGGGGCAAACTTTGAGGAATTTGTTTCTGGGCAATGTTGTTGTTAGGCAAGCACCATAACGTATATTCACACAACAGAGTTAACTAGGTCATCACTAAGAGAAATTGTCCTGAGAGACAGCAATTGTCCGTGTGGTCTACTGCAGACCACAATGTCATTACATCATATATTACCTATTGTCAAGTTCTCTGTTTGATAGTTTGTTTTATCCTTAGATAATAAAT',
+    'TCACAAGCCCTATCTAACAACACCAGCTGGGCCTTCACCCATAATAGGACTGCATGTATGGTAGTTTTAACTCTGACTCTCAGAAGTCAGACTGACCTACATGTACATCTGCCTTGAGGCCTTAACCACCGTTCAGTATTGGTAATTAACACTGGAAACCAATACAGGATTCTCTTTGTGCTCTTGGTGACTTTAAGTAGGTCATCTTAGCATCACCACTTTGAAGCTGGGACATACTTGACCTAATTTTT',
+    'GCTCTGGGACAAGGACAGCATTGAAGAAGCTGGGCTGATTCTCACTGCTTGGCCTTGAGTGGGACCCCTTGAGCTCCCCAGAGTCCCTAGTCTGTGGATTTAGTGGTTTTAACACATGGGCAGACATCTGGGCTTCATCAAACCACTATACCCATGGGGACATGTTCTCCCTTGCCGAACCATTCAGAAGAGCCCTAGGGAACCAGAGACATCTCCCTGCAGAGGGGGTGGTTGCTAGCAGACAATTAGAA',
+    'AGGTCTCTTTTGCTGATAGTCATTACATTCGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGGCTTCCTTCTTTACTAGGTCACTAGACGAAGCATCTGTTGACCTAGTTTTATGGGAGGAACTAACGGAATAAGTGCATTTGGCCTGAGTTCTTTCTTGTGAATAGGAATTGTGATTATTTCTAACTAATATTTTACTGGGGGTGGGGGAGCAGAGCTTTGTTTTAATGTAGC',
+    'CCAAATGCCAGACAATGAAGTCATACAGCCTTGGCAGGTCTAAATATCACAGTTGTTCAAAAATGGGAGGAAGGGAGAGTGCCCCAGTTTTCAGAACTTCCGCTGAAAATGAACACAGAGAAGACCTACTTATCAGTTTCCTAACCAATGAGGTCACTGGGCAGGAAATCACCTTTTATAAAGAGTCAGTAAGCAGACTCTCCCTGCTTTGAATTTTGCATAAACAGCATTAGTGAGCACTTATTCCAGCC',
+    'ACATGCCTCAGGTGATGGACTAAAGCTATAGCTGATGGCTAGCTCAGCTTTTACTCACTGTCAGCTGCATGCACAGATGTCTCCTTCAGTGGGGTTTAATACACAGTCCTTCATCCTCCAGCTATACATGGAACTGAAACCAGAGGCTCTGACTGCCATCTCCCATGTGGCTGCAGGATAGTTCTGTCTTTGGCCTTTACTGAGAGACAGACAGAGGTGTTAAGCCCTCTGCAGTGACTCTGGGAACCAGA']
     
+    x = np.array([one_hot_encode(seq).numpy() for seq in seqs])
     
-    track = 267
-    vis_seq = 0
+    Y_pred = model.forward(torch.Tensor(x))
+    Y_pred = Y_pred.detach().cpu().numpy()
+    ranks = []
+    print('Highest activity of sequence in track')
+    for i, yp in enumerate(Y_pred):
+        print(i, np.argmax(yp), np.amax(yp))
+    
+    # Example sequence
+    vis_seq = 5
+    # Highest activity track for example sequence
+    track = 22
     
     
     '''
@@ -56,7 +99,7 @@ if __name__ == '__main__':
     t2 = time.time()
     print("Local attribution scores computed, aka gradients, in", '{}s'.format(round(t2-t1,3)), 'of shape', np.shape(grad_local))
     
-    grad_local0 = grad_local[vis_seq,0][...,900:1100]
+    grad_local0 = grad_local[vis_seq,0]
     fig_local = plot_attribution(grad_local0, heatmap = grad_local0, ylabel = 'Grad\n(local)')
     
     # compute gradient times input ( global attributions to 0 reference)
@@ -65,7 +108,7 @@ if __name__ == '__main__':
     t2 = time.time()
     print("Global attribution scores computed, aka gradient times input, in", '{}s'.format(round(t2-t1,3)), 'of shape', np.shape(grad_global))
     
-    grad_global0 = grad_global[vis_seq,0][...,900:1100]
+    grad_global0 = grad_global[vis_seq,0]
     fig_global = plot_attribution(grad_global0, heatmap = grad_global0, ylabel = 'Gradxinput\n(global)')
     
     '''
@@ -100,24 +143,24 @@ if __name__ == '__main__':
     # TISM can be used just like ISM values, for example plotting the mean effect of mutating a base to determine the importance of that base.
     tism0 = grad_tism[vis_seq,0]
     meaneffect_tism = -np.sum(tism0/3, axis = -2)[None,:] * x[vis_seq]
-    fig_tism = plot_attribution(meaneffect_tism[...,900:1100], heatmap = tism0[...,900:1100], ylabel = 'Mean\nTISM')
+    fig_tism = plot_attribution(meaneffect_tism, heatmap = tism0, ylabel = 'Mean\nTISM')
 
 
     
     # compute ISM effects
     t1 = time.time()
-    ism_array = ism(x, model, tracks = track, start = 900, end = 1100)
+    ism_array = ism(x, model, tracks = track)
     t2 = time.time()
-    print("ISM values would be computed for 2,000bp in", '{}s'.format(round(10*(t2-t1),3)), 'of shape', np.shape(ism_array))
+    print("ISM values computed in", '{}s'.format(round((t2-t1),3)), 'of shape', np.shape(ism_array))
     
     ism0 = ism_array[vis_seq,0]
     meaneffect_ism = -np.sum(ism0/3, axis = -2)[None,:] * x[vis_seq]
-    fig_ism = plot_attribution(meaneffect_ism[...,900:1100], heatmap = ism0[...,900:1100], ylabel = 'Mean\nISM')
+    fig_ism = plot_attribution(meaneffect_ism, heatmap = ism0, ylabel = 'Mean\nISM')
     
     # Compare ISM to TISM
     print('ISM versus TISM')
     for i in range(np.shape(x)[0]):
-        print(i, pearsonr(grad_tism[i,0][...,900:1100].flatten(), ism_array[i,0][...,900:1100].flatten())[0]) #, pearsonr(mean_grad_tism[i,0], mean_grad_ism[i,0])
+        print(i, pearsonr(grad_tism[i,0].flatten(), ism_array[i,0].flatten())[0]) #, pearsonr(mean_grad_tism[i,0], mean_grad_ism[i,0])
     
     '''
     #The hypothetical attribution score unifies different methods
@@ -141,9 +184,9 @@ if __name__ == '__main__':
     
     # Hypothetical attribution scores to uniform baseline are equivalent to corrected gradients
     grad_corrected0 = grad_corrected[vis_seq,0]
-    fig_corrected = plot_attribution(grad_corrected0[...,900:1100], heatmap = grad_corrected0[...,900:1100], ylabel = 'Corr_Grad\n(hypo)')
+    fig_corrected = plot_attribution(grad_corrected0, heatmap = grad_corrected0, ylabel = 'Corr_Grad\n(hypo)')
     grad_hypothetical_uniform0 = grad_hypothetical_uniform[vis_seq,0]
-    fig_hypothetical = plot_attribution(grad_hypothetical_uniform0[...,900:1100], heatmap = grad_hypothetical_uniform0[...,900:1100], ylabel = 'Grad_uni\n(hypo)')
+    fig_hypothetical = plot_attribution(grad_hypothetical_uniform0, heatmap = grad_hypothetical_uniform0, ylabel = 'Grad_uni\n(hypo)')
     
     '''
     To visualize and identify sequence motifs from ISM, ISM values at all loci are often centered around the mean effect, so that the effect of the reference base becomes the negative mean of the effects from replacing it with the other four bases. 
@@ -159,7 +202,7 @@ if __name__ == '__main__':
     # Hypothetical attributions to uniform baseline are equivalent to centered ISM 
     ism_hypothetical = correct_multipliers(ism_array, 'corrected')
     ism_hypo0 = ism_hypothetical[vis_seq,0]
-    fig_ismhyp0 = plot_attribution(ism_hypo0[...,900:1100], heatmap = ism_hypo0[...,900:1100], ylabel = 'ISM_Centered\n(hypo)')
+    fig_ismhyp0 = plot_attribution(ism_hypo0, heatmap = ism_hypo0, ylabel = 'ISM_Centered\n(hypo)')
     
     '''
     With the definition of hypothetical attribution scores we can theoretically link all commonly used attribution methods for genomic sequence-to-function models. Previously practitioners used to process different methods intuitively. While previous work has provided unifying views on the different attribution generating methods (i.e. the algorithm that produces the multipliers), none of these has focused on the choice of reference or their downstream processing. Here, we explained how the default output of different methods can be different types of attributions, and how we can process the output of different methods consistently to make them comparable. Comparing different types of attribution scores does not make sense since distinct processing will make them different by definition. For example, comparison between gradients with centered ISM values cannot yield the same motifs since they represent two different things. 
@@ -174,7 +217,7 @@ if __name__ == '__main__':
     # Create hypothetical deeplift scores from local scores 
     grad_deeplift_hypothetical = correct_multipliers(grad_deeplift, 'hypotetical', x, np.ones_like(x)*0.25)
     grad_deeplift0 = grad_deeplift_hypothetical[vis_seq,0]
-    fig_deeplift = plot_attribution(grad_deeplift0[...,900:1100], heatmap = grad_deeplift0[...,900:1100], ylabel = 'DeepLift\n(hypo)')
+    fig_deeplift = plot_attribution(grad_deeplift0, heatmap = grad_deeplift0, ylabel = 'DeepLift\n(hypo)')
     
     
     # Now let's compare these attributions with each other
@@ -183,5 +226,10 @@ if __name__ == '__main__':
     print('DeepLift versus Gradient hypothetical')
     for i in range(np.shape(x)[0]):
         print(i, pearsonr(grad_hypothetical_uniform[i,0].flatten(), grad_deeplift_hypothetical[i,0].flatten())[0])
+    
+    # Compare ISM to TISM
+    print('DeepLift versus ISM')
+    for i in range(np.shape(x)[0]):
+        print(i, pearsonr(grad_deeplift_hypothetical[i,0].flatten(), ism_hypothetical[i,0].flatten())[0]) #, pearsonr(mean_grad_tism[i,0], mean_grad_ism[i,0])
     
     plt.show()

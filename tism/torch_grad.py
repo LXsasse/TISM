@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-import toch.nn as nn
+import torch.nn as nn
 
 
 

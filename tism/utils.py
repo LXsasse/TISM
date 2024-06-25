@@ -80,7 +80,7 @@ def ism(x,
     This function performs three mutagenesis experiments for each location to determine what would happen if the base at that position was mutated into one of the other three bases. 
     '''
     
-    x = torch.Tensor(x)
+    x = torch.Tensor(x).to(device)
     
     # make sure that model is not using dropout        
     model.eval()

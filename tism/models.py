@@ -127,7 +127,7 @@ class YuzuAItacDeep(torch.nn.Module):
 
         self.reshape = Flatten()
 
-        fcdimension = (seq_len // pooling_size // pooling_size // pooling_size // pooling_size // pooling_size) * embedding_size
+        fcdimension = (seq_len // pooling1 // pooling_size // pooling_size // pooling_size // pooling_size) * embedding_size
         self.fc1 = torch.nn.Linear(fcdimension, 1000)
         self.relu7 = torch.nn.ReLU()
 

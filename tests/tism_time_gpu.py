@@ -28,35 +28,46 @@ A second type of limitation is that no operations can be performed in the forwar
 
 if __name__ == '__main__':
 
-    device = 'cpu'
+    device = 'cuda:1'
 
-    Ns= [1, 10, 20]
+    Ns= [10, 50, 100]
     b=4
-    input_lengths = [250, 500, 1000]
-    
+    input_lengths = [500, 1000, 2000]
+    psize = [[4,5],[5,6],[7,8]]
+    psized = [[3,2],[2,3],[4,3]]
+
     tracks = 1
     track = 0
     
-    input_length = 250
+    '''
+    input_length = 1000
     
     # compare two models:
     # AI-tac with three convolutional and 2 fully connected layers
     # Deeper version of AI-tac with 8 conv layers and 3 fully
-    model = YuzuAItac(input_length, tracks = tracks)
-    modeldeep = YuzuAItacDeep(input_length, tracks = tracks)
+    model = YuzuAItac(input_length, tracks = tracks, pooling1 = 5, pooling_size = 6) # pooling1 * pooling_size^2
+    modeldeep = YuzuAItacDeep(input_length, tracks = tracks, pooling1 = 2, pooling_size = 3) # pooling1 * pooling_size^4
+    modelyuzu = YuzuAItac(input_length, tracks = tracks, pooling1 = 5, pooling_size = 6)
+    modeldeepyuzu = YuzuAItacDeep(input_length, tracks = tracks, pooling1 = 2, pooling_size = 3)
     
+    # Somehow precomputation sets models into inference_mode on cuda and
+    # with torch.inference_mode(False): does not reverse it
+    # therefore have own model for yuzu
     t1 = time.time()
-    precomputation = precompute(model, input_length, device = device)
+    precomputation = precompute(modelyuzu, input_length, device = device)
     t2 = time.time()
     print('Precomputation Yuzu for AI-TAC', round(t2-t1,2))
-    precomputationdeep = precompute(modeldeep, input_length, device = device)
+    precomputationdeep = precompute(modeldeepyuzu, input_length, device = device)
     t3 = time.time()
     print('Precomputation Yuzu for deep AI-TAC', round(t3-t2,2))
     
+    model.to(device)
+    modeldeep.to(device)
+
     runtimes = []
     for N in Ns:
         
-        x = random_one_hot((N, b, input_length), random_state = 1).type(torch.float32)
+        x = random_one_hot((N, b, input_length), random_state = 1).type(torch.float32).to(device)
         print('x.shape', x.shape)
         
         comptimes = []
@@ -72,15 +83,15 @@ if __name__ == '__main__':
         print('TISM: AI-TACDeep: L', input_length, 'N', N, round(t2d-t1d,2))
         
         comptimes.append([t2-t1,t2d-t1d])
-        
+
         #Apply Yuzu
         t1 = time.time()
-        yuzu_isms = yuzu_ism(model, x.numpy(), precomputation, verbose=False, device = device)
+        yuzu_isms = yuzu_ism(modelyuzu, x.detach().cpu().numpy(), precomputation, verbose=False, device = device)
         t2 = time.time()
         print('Yuzu: AI-TAC: L', input_length, 'N', N, round(t2-t1,2))
         
         t1d = time.time()
-        yuzu_isms = yuzu_ism(modeldeep, x.numpy(), precomputationdeep, verbose=False, device=device)
+        yuzu_isms = yuzu_ism(modeldeepyuzu, x.detach().cpu().numpy(), precomputationdeep, verbose=False, device=device)
         t2d = time.time()
         print('Yuzu: AI-TACDeep: L', input_length, 'N', N, round(t2d-t1d,2))
         
@@ -100,7 +111,7 @@ if __name__ == '__main__':
         comptimes.append([t2-t1,t2d-t1d])
         runtimes.append(comptimes)
         
-        '''
+        ''
         # Compare ISM to TISM
         print('ISM versus TISM')
         for i in range(np.shape(grad_tism)[0]):
@@ -115,7 +126,7 @@ if __name__ == '__main__':
         for i in range(np.shape(grad_tism)[0]):
             print(i, pearsonr(yuzu_isms[i].flatten(), ism_isms[i].flatten())[0])
     
-        '''
+        ''
         
     fig = plot_bars(runtimes, xticklabels = Ns, ylabel = 'time in sec', color = ['cornflowerblue', 'goldenrod', 'indigo'], labels = ['TISM', 'Yuzu', 'ISM'], title = ['AI-TAC', 'AI-TACDeep'], xlabel = 'N')
     figh = plot_bars(runtimes, xticklabels = Ns, ylabel = 'time in sec', color = ['cornflowerblue', 'goldenrod', 'indigo'], labels = ['TISM', 'Yuzu', 'ISM'], title = ['AI-TAC', 'AI-TACDeep'], horizontal = True, xlabel = 'N')
@@ -131,12 +142,12 @@ if __name__ == '__main__':
     if '--show' in sys.argv:
         plt.show()
         
+    '''
     
-    
-    N = 1
+    N = 10
     
     runtimes = []
-    for input_length in input_lengths:
+    for i, input_length in enumerate(input_lengths):
         
         x = random_one_hot((N, b, input_length), random_state = 1).type(torch.float32)
         print('x.shape', x.shape)
@@ -146,14 +157,25 @@ if __name__ == '__main__':
         # compare two models:
         # AI-tac with three convolutional and 2 fully connected layers
         # Deeper version of AI-tac with 8 conv layers and 3 fully
-        model = YuzuAItac(input_length, tracks = tracks)
-        modeldeep = YuzuAItacDeep(input_length, tracks = tracks)
-    
+        model = YuzuAItac(input_length, tracks = tracks,pooling1 = psize[i][0], pooling_size = psize[i][1])
+        modeldeep = YuzuAItacDeep(input_length, tracks = tracks,pooling1 = psized[i][0], pooling_size = psized[i][1])
+        modelyuzu = YuzuAItac(input_length, tracks = tracks,pooling1 = psize[i][0], pooling_size = psize[i][1])
+        modeldeepyuzu = YuzuAItacDeep(input_length, tracks = tracks,pooling1 = psized[i][0], pooling_size = psized[i][1])
+        
+        x = x.to(device)
+        model.to(device)
+        modeldeep.to(device)
+
+        # using anything but cuda:0 does not work with yuzu
+        devicey='cuda:0'
+        #modelyuzu.to('cuda:1')
+        #modeldeepyuzu.to('cuda:1')
+        
         t1 = time.time()
-        precomputation = precompute(model, input_length, device = device)
+        precomputation = precompute(modelyuzu, input_length, device = devicey)
         t2 = time.time()
         print('Precomputation Yuzu for AI-TAC with L', input_length, round(t2-t1,2))
-        precomputationdeep = precompute(modeldeep, input_length, device = device)
+        precomputationdeep = precompute(modeldeepyuzu, input_length, device = devicey)
         t3 = time.time()
         print('Precomputation Yuzu for deep AI-TAC with L', input_length, round(t3-t2,2))
         
@@ -171,12 +193,12 @@ if __name__ == '__main__':
         
         #Apply Yuzu
         t1 = time.time()
-        yuzu_isms = yuzu_ism(model, x.numpy(), precomputation, verbose=False, device = device)
+        yuzu_isms = yuzu_ism(modelyuzu, x.detach().cpu().numpy(), precomputation, verbose=False, device = devicey)
         t2 = time.time()
         print('Yuzu: AI-TAC: L', input_length, 'N', N, round(t2-t1,2))
         
         t1d = time.time()
-        yuzu_isms = yuzu_ism(modeldeep, x.numpy(), precomputationdeep, verbose=False, device=device)
+        yuzu_isms = yuzu_ism(modeldeepyuzu, x.detach().cpu().numpy(), precomputationdeep, verbose=False, device=devicey)
         t2d = time.time()
         print('Yuzu: AI-TACDeep: L', input_length, 'N', N, round(t2d-t1d,2))
         

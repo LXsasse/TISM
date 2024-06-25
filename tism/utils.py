@@ -195,7 +195,7 @@ def plot_attribution(att, # attribution map
     
     return fig
 
-def plot_bars(x, width = 0.8, xticklabels=None, xlabel = None, ylabel=None, ylim=None, color = None, figsize = (3.5,3.5), labels = None, title = None):
+def plot_bars(x, width = 0.8, xticklabels=None, xlabel = None, ylabel=None, ylim=None, color = None, figsize = (3.5,3.5), labels = None, title = None, horizontal = False):
     
     """
     Parameter
@@ -224,9 +224,16 @@ def plot_bars(x, width = 0.8, xticklabels=None, xlabel = None, ylabel=None, ylim
             color = [None for i in range(np.shape(x)[1])]
    
     if len(np.shape(x)) > 2:
-        fig = plt.figure(figsize = (figsize[0], figsize[1] * np.shape(x)[-1]))
+        if horizontal: 
+            fig = plt.figure(figsize = (figsize[0]* np.shape(x)[-1], figsize[1]))
+        else:
+            fig = plt.figure(figsize = (figsize[0], figsize[1] * np.shape(x)[-1]))
+        
         for a in range(np.shape(x)[-1]):
-            ax = fig.add_subplot(np.shape(x)[-1], 1, a+1)
+            if horizontal:
+                ax = fig.add_subplot(1, np.shape(x)[-1], a+1)
+            else:
+                ax = fig.add_subplot(np.shape(x)[-1], 1, a+1)
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)
         
@@ -241,25 +248,40 @@ def plot_bars(x, width = 0.8, xticklabels=None, xlabel = None, ylabel=None, ylim
                 ax.legend()
         
             ax.grid()
-            if a + 1 == np.shape(x)[-1]:
+            
+            if horizontal: 
+                if a == 0:
+                    if ylabel is not None:
+                        ax.set_ylabel(ylabel)    
                 if xticklabels is not None:
                     ax.set_xticks(xticks)
                     ax.set_xticklabels(xticklabels, rotation = 60)
                 if xlabel is not None:
                     ax.set_xlabel(xlabel)
+                
             else:
-                ax.tick_params(labelbottom = False)
+                if a + 1 == np.shape(x)[-1]:
+                    if xticklabels is not None:
+                        ax.set_xticks(xticks)
+                        ax.set_xticklabels(xticklabels, rotation = 60)
+                    if xlabel is not None:
+                        ax.set_xlabel(xlabel)
+                else:
+                    ax.tick_params(labelbottom = False)
             
-            if ylabel is not None:
-                ax.set_ylabel(ylabel)
+                if ylabel is not None:
+                    ax.set_ylabel(ylabel)
             
             if ylim is not None:
                 ax.set_ylim(ylim)
             
             if title is not None:
                 ax.set_title(title[a])
-            
-        plt.subplots_adjust(hspace=0.2)
+        
+        if horizontal:
+            plt.subplots_adjust(wspace=0.2)
+        else:
+            plt.subplots_adjust(hspace=0.2)
     else:
         fig = plt.figure(figsize = figsize)
         ax = fig.add_subplot(111)

@@ -10,7 +10,7 @@ Install by navigating into the localation of the local repository
 
 pip install -e .
 
-
+![image](https://github.com/LXsasse/TISM/blob/main/results/Comparison_time_N_cpu.jpg)
 
 
 Download Beluga models parameters at:

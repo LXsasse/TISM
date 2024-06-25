@@ -10,8 +10,8 @@ Install by navigating into the localation of the local repository
 
 pip install -e .
 
-![image](https://github.com/LXsasse/TISM/blob/main/results/Comparison_time_N_cpu.jpg)
-
+%![image](https://github.com/LXsasse/TISM/blob/main/results/Comparison_time_N_cpu.jpg)
+<img src="https://github.com/LXsasse/TISM/blob/main/results/Comparison_time_N_cpu.jpg" width="500">
 
 Download Beluga models parameters at:
 https://github.com/kipoi/models/tree/master/DeepSEA/beluga

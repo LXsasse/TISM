@@ -120,12 +120,12 @@ if __name__ == '__main__':
     fig = plot_bars(runtimes, xticklabels = Ns, ylabel = 'time in sec', color = ['cornflowerblue', 'goldenrod', 'indigo'], labels = ['TISM', 'Yuzu', 'ISM'], title = ['AI-TAC', 'AI-TACDeep'], xlabel = 'N')
     figh = plot_bars(runtimes, xticklabels = Ns, ylabel = 'time in sec', color = ['cornflowerblue', 'goldenrod', 'indigo'], labels = ['TISM', 'Yuzu', 'ISM'], title = ['AI-TAC', 'AI-TACDeep'], horizontal = True, xlabel = 'N')
     
-    fig.savefig('../results/Comparison_time_N_'+device.replace(':', '_')+'.jpg', bbox_inches = 'tight', dpi = 300)
-    fig.savefig('../results/Comparison_time_N_'+device.replace(':', '_')+'.pdf', bbox_inches = 'tight', dpi = 300)
+    fig.savefig('../results/Comparison_time_N_'+device.replace(':', '')+'.jpg', bbox_inches = 'tight', dpi = 300)
+    fig.savefig('../results/Comparison_time_N_'+device.replace(':', '')+'.pdf', bbox_inches = 'tight', dpi = 300)
 
-    figh.savefig('../results/Comparison_time_hor_N_'+device.replace(':', '_')+'.jpg', bbox_inches = 'tight', dpi = 300)
+    figh.savefig('../results/Comparison_time_hor_N_'+device.replace(':', '')+'.jpg', bbox_inches = 'tight', dpi = 300)
     
-    write_table(runtimes, '../results/Comparison_time_N_'+device.replace(':', '_')+'.tsv', rows = Ns, columns = ['TISM', 'Yuzu', 'ISM'], additional = ['AITAC', 'AITACDeep'])
+    write_table(runtimes, '../results/Comparison_time_N_'+device.replace(':', '')+'.tsv', rows = Ns, columns = ['TISM', 'Yuzu', 'ISM'], additional = ['AITAC', 'AITACDeep'])
 
     
     if '--show' in sys.argv:
@@ -216,12 +216,12 @@ if __name__ == '__main__':
     fig = plot_bars(runtimes, xticklabels = input_lengths, ylabel = 'time in sec', color = ['cornflowerblue', 'goldenrod', 'indigo'], labels = ['TISM', 'Yuzu', 'ISM'], title = ['AI-TAC', 'AI-TACDeep'], xlabel = 'Seq. length')
     figh = plot_bars(runtimes, xticklabels = input_lengths, ylabel = 'time in sec', color = ['cornflowerblue', 'goldenrod', 'indigo'], labels = ['TISM', 'Yuzu', 'ISM'], title = ['AI-TAC', 'AI-TACDeep'], horizontal = True, xlabel = 'Seq. length')
     
-    fig.savefig('../results/Comparison_time_L_'+device.replace(':', '_')+'.jpg', bbox_inches = 'tight', dpi = 300)
-    fig.savefig('../results/Comparison_time_L_'+device.replace(':', '_')+'.pdf', bbox_inches = 'tight', dpi = 300)
+    fig.savefig('../results/Comparison_time_L_'+device.replace(':', '')+'.jpg', bbox_inches = 'tight', dpi = 300)
+    fig.savefig('../results/Comparison_time_L_'+device.replace(':', '')+'.pdf', bbox_inches = 'tight', dpi = 300)
     
-    figh.savefig('../results/Comparison_time_hor_L_'+device.replace(':', '_')+'.jpg', bbox_inches = 'tight', dpi = 300)
+    figh.savefig('../results/Comparison_time_hor_L_'+device.replace(':', '')+'.jpg', bbox_inches = 'tight', dpi = 300)
     
-    write_table(runtimes, '../results/Comparison_time_L_'+device.replace(':', '_')+'.tsv', rows = input_lengths, columns = ['TISM', 'Yuzu', 'ISM'], additional = ['AITAC', 'AITACDeep'])
+    write_table(runtimes, '../results/Comparison_time_L_'+device.replace(':', '')+'.tsv', rows = input_lengths, columns = ['TISM', 'Yuzu', 'ISM'], additional = ['AITAC', 'AITACDeep'])
     
     if '--show' in sys.argv:
         plt.show()

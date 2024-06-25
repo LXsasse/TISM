@@ -6,8 +6,8 @@ import time
 from scipy.stats import pearsonr
 import matplotlib.pyplot as plt 
 
-from tism.models import seqtofunc_cnn_yuzu
-from tism.tangermeme_utils import plot_attribution, ism, deepliftshap
+from tism.models import YuzuAItac, YuzuAItacDeep
+from tism.utils import plot_attribution, ism, deepliftshap, plot_bars, write_table
 from tism.torch_grad import correct_multipliers, takegrad
 
 from tangermeme.utils import random_one_hot
@@ -17,78 +17,208 @@ from yuzu import precompute
 from yuzu.yuzu_ism import yuzu_ism
 from yuzu.naive_ism import naive_ism
 
+# (copied from https://github.com/kundajelab/yuzu/blob/main/tutorials/3.%20Using%20Yuzu%20with%20Your%20Model.ipynb)
+'''
+Limitations of Yuzu
+
+Unfortunately, iterating over model.children() is conceptually easy but requires that the models are sequential. A major consequence of this is that no multi-input or multi-output networks are supported right now (unless the inputs or outputs can be represented in a single tensor). Also, no networks with multiple paths are supported right now, including residual connections.
+
+A second type of limitation is that no operations can be performed in the forward pass other than iterating through the layers in a sequential manner. This means no flattening, reshaping, cropping, adding operations, referring to the same layer multiple times, etc. Any manipulation of the data must occur within the context of layers.
+'''
+
 if __name__ == '__main__':
 
-    '''
-    parameters = '../data/deepsea.beluga.pth'
-    model = Beluga()
-    model.load_state_dict(torch.load(parameters))
-    model.eval()
-    '''
-    
-    N=1
+    device = 'cpu'
+
+    Ns= [1, 10, 20]
     b=4
-    input_length = 200
+    input_lengths = [250, 500, 1000]
     
-    x = random_one_hot((N, b, input_length), random_state = 1).type(torch.float32)
-    x = substitute(x, "CTCAGTGATG")
-    #x = x.detach().cpu().numpy()
-    print(x.shape)
-    model = seqtofunc_cnn_yuzu(b, input_length, n_kernels = 200, l_kernels = 15, l_conv=7, padding = 2/3, N_convs = 3, pooling_size = 3, n_tracks = 1)
+    tracks = 1
+    track = 0
     
-    #y = model.forward(torch.Tensor(x))
+    input_length = 250
     
-    track = 2
-    vis_seq = 0
+    # compare two models:
+    # AI-tac with three convolutional and 2 fully connected layers
+    # Deeper version of AI-tac with 8 conv layers and 3 fully
+    model = YuzuAItac(input_length, tracks = tracks)
+    modeldeep = YuzuAItacDeep(input_length, tracks = tracks)
     
-    
-    
-    '''
-    # compute taylor approximated in silico saturation mutagenesis effects.
     t1 = time.time()
-    grad_tism = takegrad(x, model, tracks = track, output = 'tism', device = None, baseline = None, channel_axis = -2)
+    precomputation = precompute(model, input_length, device = device)
     t2 = time.time()
-    print("TISM values computed from gradients in", '{}s'.format(round(t2-t1,3)), 'of shape', np.shape(grad_tism))
+    print('Precomputation Yuzu for AI-TAC', round(t2-t1,2))
+    precomputationdeep = precompute(modeldeep, input_length, device = device)
+    t3 = time.time()
+    print('Precomputation Yuzu for deep AI-TAC', round(t3-t2,2))
     
-    # TISM can be used just like ISM values, for example plotting the mean effect of mutating a base to determine the importance of that base.
-    tism0 = grad_tism[vis_seq,0]
-    meaneffect_tism = -np.sum(tism0/3, axis = -2)[None,:] * x[vis_seq]
-    fig_tism = plot_attribution(meaneffect_tism[...,900:1100], heatmap = tism0[...,900:1100], ylabel = 'Mean\nTISM')
+    runtimes = []
+    for N in Ns:
+        
+        x = random_one_hot((N, b, input_length), random_state = 1).type(torch.float32)
+        print('x.shape', x.shape)
+        
+        comptimes = []
+        
+        # compute taylor approximated in silico saturation mutagenesis effects.
+        t1 = time.time()
+        grad_tism = takegrad(x, model, tracks = None, output = 'tism', device = device, baseline = None)
+        t2 = time.time()
+        print('TISM: AI-TAC: L', input_length, 'N', N, round(t2-t1,2))
+        t1d = time.time()
+        grad_tismdeep = takegrad(x, modeldeep, tracks = None, output = 'tism', device = device, baseline = None)
+        t2d = time.time()
+        print('TISM: AI-TACDeep: L', input_length, 'N', N, round(t2d-t1d,2))
+        
+        comptimes.append([t2-t1,t2d-t1d])
+        
+        #Apply Yuzu
+        t1 = time.time()
+        yuzu_isms = yuzu_ism(model, x.numpy(), precomputation, verbose=False, device = device)
+        t2 = time.time()
+        print('Yuzu: AI-TAC: L', input_length, 'N', N, round(t2-t1,2))
+        
+        t1d = time.time()
+        yuzu_isms = yuzu_ism(modeldeep, x.numpy(), precomputationdeep, verbose=False, device=device)
+        t2d = time.time()
+        print('Yuzu: AI-TACDeep: L', input_length, 'N', N, round(t2d-t1d,2))
+        
+        comptimes.append([t2-t1,t2d-t1d])
+        
+        # compute ISM effects
+        t1 = time.time()
+        ism_array = ism(x, model, tracks = None, device = device)
+        t2 = time.time()
+        print('ISM: AI-TAC: L', input_length, 'N', N, round(t2-t1,2))
+        
+        t1d = time.time()
+        ism_array = ism(x, modeldeep, tracks = None, device = device)
+        t2d = time.time()
+        print('ISM: AI-TACDeep: L', input_length, 'N', N, round(t2d-t1d,2))
+        
+        comptimes.append([t2-t1,t2d-t1d])
+        runtimes.append(comptimes)
+        
+        '''
+        # Compare ISM to TISM
+        print('ISM versus TISM')
+        for i in range(np.shape(grad_tism)[0]):
+            print(i, pearsonr(grad_tism[i,track].flatten(), ism_array[i,track].flatten())[0])
+        
+        
+        # By default Yuzu returns L2 norm of ism values from all tracks. 
+        ism_isms = np.sqrt(np.sum(np.square(ism_array), axis = 1))
+        
+        # Compare ISM to Yuzu ISM
+        print('ISM versus Yuzu')
+        for i in range(np.shape(grad_tism)[0]):
+            print(i, pearsonr(yuzu_isms[i].flatten(), ism_isms[i].flatten())[0])
+    
+        '''
+        
+    fig = plot_bars(runtimes, xticklabels = Ns, ylabel = 'time in sec', color = ['cornflowerblue', 'goldenrod', 'indigo'], labels = ['TISM', 'Yuzu', 'ISM'], title = ['AI-TAC', 'AI-TACDeep'])
+    
+    fig.savefig('../results/Comparison_time_N_'+device.replace(':', '_')+'.jpg', bbox_inches = 'tight', dpi = 300)
+    fig.savefig('../results/Comparison_time_N_'+device.replace(':', '_')+'.pdf', bbox_inches = 'tight', dpi = 300)
+    
+    write_table(runtimes, '../results/Comparison_time_N_'+device.replace(':', '_')+'.tsv', rows = Ns, columns = ['TISM', 'Yuzu', 'ISM'], additional = ['AITAC', 'AITACDeep'])
+    
+    if '--show' in sys.argv:
+        plt.show()
+        
+    
+    
+    N = 1
+    
+    runtimes = []
+    for input_length in input_lengths:
+        
+        x = random_one_hot((N, b, input_length), random_state = 1).type(torch.float32)
+        print('x.shape', x.shape)
+        
+        comptimes = []
+        
+        # compare two models:
+        # AI-tac with three convolutional and 2 fully connected layers
+        # Deeper version of AI-tac with 8 conv layers and 3 fully
+        model = YuzuAItac(input_length, tracks = tracks)
+        modeldeep = YuzuAItacDeep(input_length, tracks = tracks)
+    
+        t1 = time.time()
+        precomputation = precompute(model, input_length, device = device)
+        t2 = time.time()
+        print('Precomputation Yuzu for AI-TAC with L', input_length, round(t2-t1,2))
+        precomputationdeep = precompute(modeldeep, input_length, device = device)
+        t3 = time.time()
+        print('Precomputation Yuzu for deep AI-TAC with L', input_length, round(t3-t2,2))
+        
+        # compute taylor approximated in silico saturation mutagenesis effects.
+        t1 = time.time()
+        grad_tism = takegrad(x, model, tracks = None, output = 'tism', device = device, baseline = None)
+        t2 = time.time()
+        print('TISM: AI-TAC: L', input_length, 'N', N, round(t2-t1,2))
+        t1d = time.time()
+        grad_tismdeep = takegrad(x, modeldeep, tracks = None, output = 'tism', device = device, baseline = None)
+        t2d = time.time()
+        print('TISM: AI-TACDeep: L', input_length, 'N', N, round(t2d-t1d,2))
+        
+        comptimes.append([t2-t1,t2d-t1d])
+        
+        #Apply Yuzu
+        t1 = time.time()
+        yuzu_isms = yuzu_ism(model, x.numpy(), precomputation, verbose=False, device = device)
+        t2 = time.time()
+        print('Yuzu: AI-TAC: L', input_length, 'N', N, round(t2-t1,2))
+        
+        t1d = time.time()
+        yuzu_isms = yuzu_ism(modeldeep, x.numpy(), precomputationdeep, verbose=False, device=device)
+        t2d = time.time()
+        print('Yuzu: AI-TACDeep: L', input_length, 'N', N, round(t2d-t1d,2))
+        
+        comptimes.append([t2-t1,t2d-t1d])
+        
+        # compute ISM effects
+        t1 = time.time()
+        ism_array = ism(x, model, tracks = None, device = device)
+        t2 = time.time()
+        print('ISM: AI-TAC: L', input_length, 'N', N, round(t2-t1,2))
+        
+        t1d = time.time()
+        ism_array = ism(x, modeldeep, tracks = None, device = device)
+        t2d = time.time()
+        print('ISM: AI-TACDeep: L', input_length, 'N', N, round(t2d-t1d,2))
+        
+        comptimes.append([t2-t1,t2d-t1d])
+        runtimes.append(comptimes)
+        
+        '''
+        # Compare ISM to TISM
+        print('ISM versus TISM')
+        for i in range(np.shape(grad_tism)[0]):
+            print(i, pearsonr(grad_tism[i,track].flatten(), ism_array[i,track].flatten())[0])
+        
+        
+        # By default Yuzu returns L2 norm of ism values from all tracks. 
+        ism_isms = np.sqrt(np.sum(np.square(ism_array), axis = 1))
+        
+        # Compare ISM to Yuzu ISM
+        print('ISM versus Yuzu')
+        for i in range(np.shape(grad_tism)[0]):
+            print(i, pearsonr(yuzu_isms[i].flatten(), ism_isms[i].flatten())[0])
+    
+        '''
+        
+    fig = plot_bars(runtimes, xticklabels = input_lengths, ylabel = 'time in sec', color = ['cornflowerblue', 'goldenrod', 'indigo'], labels = ['TISM', 'Yuzu', 'ISM'], title = ['AI-TAC', 'AI-TACDeep'])
+    
+    fig.savefig('../results/Comparison_time_L_'+device.replace(':', '_')+'.jpg', bbox_inches = 'tight', dpi = 300)
+    fig.savefig('../results/Comparison_time_L_'+device.replace(':', '_')+'.pdf', bbox_inches = 'tight', dpi = 300)
+    
+    write_table(runtimes, '../results/Comparison_time_L_'+device.replace(':', '_')+'.tsv', rows = input_lengths, columns = ['TISM', 'Yuzu', 'ISM'], additional = ['AITAC', 'AITACDeep'])
+    
+    if '--show' in sys.argv:
+        plt.show()
 
-
-    
-    # compute ISM effects
-    t1 = time.time()
-    ism_array = ism(x, model, tracks = track, start = 900, end = 1100)
-    t2 = time.time()
-    print("ISM values would be computed for 2,000bp in", '{}s'.format(round(10*(t2-t1),3)), 'of shape', np.shape(ism_array))
-    
-    ism0 = ism_array[vis_seq,0]
-    meaneffect_ism = -np.sum(ism0/3, axis = -2)[None,:] * x[vis_seq]
-    fig_ism = plot_attribution(meaneffect_ism[...,900:1100], heatmap = ism0[...,900:1100], ylabel = 'Mean\nISM')
-    
-    # Compare ISM to TISM
-    print('ISM versus TISM')
-    for i in range(np.shape(x)[0]):
-        print(i, pearsonr(grad_tism[i,0][...,900:1100].flatten(), ism_array[i,0][...,900:1100].flatten())[0]) #, pearsonr(mean_grad_tism[i,0], mean_grad_ism[i,0])
-    '''
-    
-    
-    
-    # (copied from https://github.com/kundajelab/yuzu/blob/main/tutorials/3.%20Using%20Yuzu%20with%20Your%20Model.ipynb)
-    '''
-    Limitations of Yuzu
-
-    Unfortunately, iterating over model.children() is conceptually easy but requires that the models are sequential. A major consequence of this is that no multi-input or multi-output networks are supported right now (unless the inputs or outputs can be represented in a single tensor). Also, no networks with multiple paths are supported right now, including residual connections.
-
-    A second type of limitation is that no operations can be performed in the forward pass other than iterating through the layers in a sequential manner. This means no flattening, reshaping, cropping, adding operations, referring to the same layer multiple times, etc. Any manipulation of the data must occur within the context of layers.
-    '''
-    
-    #Now let's apply Yuzu to the second sequence.    
-    precomputation = precompute(model, input_length)
-
-    yuzu_ism_scores = yuzu_ism(model, x, * precomputation, verbose=False)[0]
-    
     
 
     

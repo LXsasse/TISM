@@ -7,30 +7,13 @@ from scipy.stats import pearsonr
 import matplotlib.pyplot as plt 
 
 from tism.models import seqtofunc_cnn
-from tism.tangermeme_utils import plot_attribution, ism, deepliftshap
+from tism.utils import plot_attribution, ism, deepliftshap
 from tism.torch_grad import correct_multipliers, takegrad
 
 from tangermeme.utils import one_hot_encode
 from tangermeme.ersatz import substitute
 
 if __name__ == '__main__':
-
-    #parameters = '../data/deepsea.beluga.pth'
-    #model = Beluga()
-    #model.load_state_dict(torch.load(parameters))
-    #model.eval()
-    
-    #N=1
-    #b=4
-    #input_length = 2000
-    
-    #x = random_one_hot((N, b, input_length), random_state = 1).type(torch.float32)
-    #x = substitute(x, "CTCAGTGATG")
-    #x = x.detach().cpu().numpy()
-    
-    
-    #track = 267
-    #vis_seq = 0
     
         # model parameter pth file 
     parameters = '../data/Quickfitmodel_parameter.pth'
@@ -136,7 +119,7 @@ if __name__ == '__main__':
     
     # compute taylor approximated in silico saturation mutagenesis effects.
     t1 = time.time()
-    grad_tism = takegrad(x, model, tracks = track, output = 'tism', device = None, baseline = None, channel_axis = -2)
+    grad_tism = takegrad(x, model, tracks = track, output = 'tism', device = None, baseline = None)
     t2 = time.time()
     print("TISM values computed from gradients in", '{}s'.format(round(t2-t1,3)), 'of shape', np.shape(grad_tism))
     

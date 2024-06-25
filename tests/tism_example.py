@@ -7,7 +7,7 @@ from scipy.stats import pearsonr
 import matplotlib.pyplot as plt 
 
 from tism.models import Beluga
-from tism.tangermeme_utils import plot_attribution, ism, deepliftshap
+from tism.utils import plot_attribution, ism, deepliftshap
 from tism.torch_grad import correct_multipliers, takegrad
 
 from tangermeme.utils import random_one_hot
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     
     # compute taylor approximated in silico saturation mutagenesis effects.
     t1 = time.time()
-    grad_tism = takegrad(x, model, tracks = track, output = 'tism', device = None, baseline = None, channel_axis = -2)
+    grad_tism = takegrad(x, model, tracks = track, output = 'tism', device = None, baseline = None)
     t2 = time.time()
     print("TISM values computed from gradients in", '{}s'.format(round(t2-t1,3)), 'of shape', np.shape(grad_tism))
     

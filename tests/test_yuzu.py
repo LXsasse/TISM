@@ -96,7 +96,9 @@ class Unsqueeze(torch.nn.Module):
     def forward(self, x):
         return x.unsqueeze(self.dim)
 '''
-# Need to import these layers from models because yuzu_ism uses predefined terminal_layers that cannot be given to the model anymore
+
+
+#### Need to import these layers from models because yuzu_ism uses predefined terminal_layers that cannot be given to the model anymore ###
 from yuzu.models import Flatten, Unsqueeze
 
 
@@ -194,7 +196,54 @@ class Basset(torch.nn.Module):
             X = self.unsqueeze(X)
             return X
 
+class Basset_(torch.nn.Module):
+    def __init__(self, n_inputs, seq_len=None, random_state=0, n_conv = 2, maxpool = 4):
+        super(Basset_, self).__init__()
+        torch.manual_seed(random_state)
+        
+        self.conv1 = torch.nn.Conv1d(4, 300, kernel_size=19, padding=9)
+        self.relu1 = torch.nn.ReLU()
+        self.bn1 = torch.nn.BatchNorm1d(300)
+        self.maxpool1 = torch.nn.MaxPool1d(3)
+        
+        ### ModuleLists and  nn.Sequential does not work for Yuzu
+        self.convs = nn.ModuleList()
+        
+        for i in range(n_conv):
+            self.convs.append(torch.nn.Conv1d(300, 300, kernel_size=11, padding=5))
+            self.convs.append(torch.nn.ReLU())
+            self.convs.append(torch.nn.BatchNorm1d(300))
+            self.convs.append(torch.nn.MaxPool1d(4))
 
+        self.reshape = Flatten()
+
+        self.fc1 = torch.nn.Linear((seq_len // 3 // 4 // 4) * 300, 1000)
+        self.relu4 = torch.nn.ReLU()
+        #self.bn4 = torch.nn.BatchNorm1d(1000)
+
+        self.fc2 = torch.nn.Linear(1000, 1000)
+        self.relu5 = torch.nn.ReLU()
+        #self.bn5 = torch.nn.BatchNorm1d(1000)
+
+
+        self.fc3 = torch.nn.Linear(1000, 164)
+        self.unsqueeze = Unsqueeze(1)
+
+    def forward(self, X):
+        with torch.no_grad():
+
+            X = self.maxpool1(self.bn1(self.relu1(self.conv1(X))))
+            for item in self.convs:
+                X = item(X)
+                
+            X = self.reshape(X)
+
+            X = self.relu4(self.fc1(X))
+            X = self.relu5(self.fc2(X))
+            
+            X = self.fc3(X)
+            X = self.unsqueeze(X)
+            return X
 
 
 
@@ -206,7 +255,7 @@ import numpy as np
 import time
 #from yuzu.models import DeepSEA, Basset
 from yuzu.naive_ism import naive_ism
-
+from scipy.stats import pearsonr
 
 if __name__ == '__main__':
     seq_len, n_choices = 200, 4
@@ -216,8 +265,8 @@ if __name__ == '__main__':
     X[0, idxs, np.arange(seq_len)] = 1
     print(X.shape)
 
-    model = DeepSEA(seq_len=seq_len, n_inputs=n_choices)
-    model1 = Basset(seq_len=seq_len, n_inputs=n_choices)
+    model1 = DeepSEA(seq_len=seq_len, n_inputs=n_choices)
+    model = Basset(seq_len=seq_len, n_inputs=n_choices)
 
     y = model.forward(torch.Tensor(X))
     y1 = model1.forward(torch.Tensor(X))
@@ -234,6 +283,7 @@ if __name__ == '__main__':
     naive_result = naive_ism(model, X, device='cpu')
     naive_time = time.time() - tic
 
+    print(pearsonr(naive_result[0].flatten(), yuzu_result[0].flatten())[0])
     print(naive_time, yuzu_time, naive_result.shape, yuzu_result.shape)
 
 

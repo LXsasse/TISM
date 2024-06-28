@@ -26,7 +26,9 @@ wget https://zenodo.org/record/3402406/files/deepsea.beluga.pth
 Taylor's approximation represents a linear approximation in the infinitely small regime around the sequence of interest $`s_0`$ with the multiplier or coefficient of the linear model represented by the gradient $`df/ds_0`$. To interpret these local linear approximations of the model, people derive either ***local*** or ***global*** importance scores from them. The local importance scores are simply given by the coefficients or multipliers of the linear approximation of the model. They determine how important an input feature is locally around the sequences. Global importance scores are given by the linear coefficients multiplied with the difference between the investigated sequence and a "neutral" reference sequence. Global scores account for different scales of non-standardized features. 
     
 ```math
-a_{local} = m_{s_0} \
+a_{local} = m_{s_0}
+```
+```math
 a_{global} = m_{s_0} \cdot (s_0 - s_{baseline})
 ```
 
@@ -70,7 +72,7 @@ fig_global = plot_attribution(grad_global0, heatmap = grad_global0, ylabel = 'Gr
 
 ### Taylor approximation links gradients to ISM values
 
-Taylor directly links ISM to the linear approximation from the models' gradients, or other backpropagation based methods. The gradient $`df/ds0`$ can also be represented as the finite difference from the reference $`s_0`$ to a sequence with a single nucleotide substitution from $`b_0`$ to $`b_1`$ at position l, denoted by  $`s_0(l,b_0,b_1)`$.
+Taylor directly links ISM to the linear approximation from the models' gradients, or other backpropagation based methods. The gradient $`df/ds_0`$ can also be represented as the finite difference from the reference $`s_0`$ to a sequence with a single nucleotide substitution from $`b_0`$ to $`b_1`$ at position l, denoted by  $`s_0(l,b_0,b_1)`$.
 ISM can be understood as the linear effect from an approximation of the deep learning model f. Vice versa, using this relationship enables us to approximate time consuming ISM values from the models' gradients. Applying this relationship to a one-hot encoded input in which the reference base $`b_0`$ a position l is replaced (set $`b_0`$ from 1 to 0) by an alternative base $`b_1`$ (set $`b_1`$ from 0 to 1), we can see that the ISM at l, $`b_1`$ is equal to the gradient with respect to the reference sequence $`s_0`$ at base  l, $`b_1`$ minus the gradient at base  l, $`b_0`$. 
 
 ```math    
@@ -102,10 +104,10 @@ Simply put, TISM links the model's gradient with values from ISM. These values c
 While local and global importance scores are common in image classification, a third attribution score has become more relevant for genomic sequence analysis, the “hypothetical attribution score”. 
 > “The hypothetical importance scores are meant to give a sense of what importance would be placed on a different base in the sequence if that base were present. We tend to think of it as an "autocomplete" of the scores, because in cases where you have a partial motif match, the hypothetical importance scores could give you a sense of what a stronger motif match would have looked like.” (https://github.com/kundajelab/tfmodisco/issues/5). 
 
-This feature is beneficial to extract contribution weight matrices that, similar to position weight matrices, not only tell us about the contribution of the present feature but also about what would be preferred instead. The hypothetical contributions for a base are created by a transformation of the local attribution scores, which subtracts the sum over all bases of the difference between the baseline and the sequence of interest weighted by their local attributions from the attribution at the base, i.e. the difference between a sequence where the hypothetical base was present and the selected baseline sequence with base-pair probabilities `$b(i)`$ at base i. 
+This feature is beneficial to extract contribution weight matrices that, similar to position weight matrices, not only tell us about the contribution of the present feature but also about what would be preferred instead. The hypothetical contributions for a base are created by a transformation of the local attribution scores, which subtracts the sum over all bases of the difference between the baseline and the sequence of interest weighted by their local attributions from the attribution at the base, i.e. the difference between a sequence where the hypothetical base was present and the selected baseline sequence with base-pair probabilities $`b(i)`$ at base i. 
 
 ```math
-a_{hypo}(j)= m_{s_0}(j) - \sum_{i}^{\{A,C,G,T\}} b(i) \cdot m_{s_0}(i)  ; j \element \{A,C,G,T\}
+a_{hypo}(j)= m_{s_0}(j) - \sum_{i}^{\{A,C,G,T\}} b(i) \cdot m_{s_0}(i) \; ; \: j \in \{A,C,G,T\}
 ```
 For gradient-based attributions, we can determine that the recently suggested correction by Majdandzic et al. [[2]](#2) of the gradient represents the hypothetical attribution score to a baseline with 0.25 uniform base-pair probability. 
 
@@ -143,5 +145,6 @@ While TISM and ISM correlated around 0.7, the speed up from TISM to ISM is massi
 <a id="1">[1]</a> 
 Quick and effective approximation of in silico saturation mutagenesis experiments with first-order Taylor expansion
 Alexander Sasse, Maria Chikina, Sara Mostafavi,bioRxiv 2023.11.10.566588; doi: https://doi.org/10.1101/2023.11.10.566588 
+
 <a id="2">[2]</a>
 Majdandzic, A., Rajesh, C. & Koo, P.K. Correcting gradient-based interpretations of deep neural networks for genomics. Genome Biol 24, 109 (2023). https://doi.org/10.1186/s13059-023-02956-3

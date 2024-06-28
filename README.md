@@ -17,18 +17,16 @@ Install by navigating to the location of the local repository
 
 In this example, we're using the precomputed DeepSEA model, which can be downloaded from https://github.com/kipoi/models/tree/master/DeepSEA/beluga, simply with:
 
-`
+```
 mkdir data
-
 cd data
-
 wget https://zenodo.org/record/3402406/files/deepsea.beluga.pth
-`
+```
 
 Taylor's approximation represents a linear approximation in the infinitely small regime around the sequence of interest $`s_0`$ with the multiplier or coefficient of the linear model represented by the gradient $`df/ds_0`$. To interpret these local linear approximations of the model, people derive either ***local*** or ***global*** importance scores from them. The local importance scores are simply given by the coefficients or multipliers of the linear approximation of the model. They determine how important an input feature is locally around the sequences. Global importance scores are given by the linear coefficients multiplied with the difference between the investigated sequence and a "neutral" reference sequence. Global scores account for different scales of non-standardized features. 
     
 ```math
-a_{local} = m_{s_0} \\
+a_{local} = m_{s_0} //
 a_{global} = m_{s_0} \cdot (s_0 - s_{baseline})
 ```
 

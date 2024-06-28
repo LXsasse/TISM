@@ -124,7 +124,8 @@ if __name__ == '__main__':
     fig.savefig('../results/Comparison_time_N_'+device.replace(':', '')+'.pdf', bbox_inches = 'tight', dpi = 300)
 
     figh.savefig('../results/Comparison_time_hor_N_'+device.replace(':', '')+'.jpg', bbox_inches = 'tight', dpi = 300)
-    
+    figh.savefig('../results/Comparison_time_hor_N_'+device.replace(':', '')+'.pdf', bbox_inches = 'tight', dpi = 300)
+
     write_table(runtimes, '../results/Comparison_time_N_'+device.replace(':', '')+'.tsv', rows = Ns, columns = ['TISM', 'Yuzu', 'ISM'], additional = ['AITAC', 'AITACDeep'])
 
     
@@ -220,7 +221,8 @@ if __name__ == '__main__':
     fig.savefig('../results/Comparison_time_L_'+device.replace(':', '')+'.pdf', bbox_inches = 'tight', dpi = 300)
     
     figh.savefig('../results/Comparison_time_hor_L_'+device.replace(':', '')+'.jpg', bbox_inches = 'tight', dpi = 300)
-    
+    figh.savefig('../results/Comparison_time_hor_L_'+device.replace(':', '')+'.pdf', bbox_inches = 'tight', dpi = 300)
+
     write_table(runtimes, '../results/Comparison_time_L_'+device.replace(':', '')+'.tsv', rows = input_lengths, columns = ['TISM', 'Yuzu', 'ISM'], additional = ['AITAC', 'AITACDeep'])
     
     if '--show' in sys.argv:

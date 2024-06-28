@@ -59,6 +59,8 @@ if __name__ == '__main__':
     grad_local0 = grad_local[vis_seq,0][...,900:1100]
     fig_local = plot_attribution(grad_local0, heatmap = grad_local0, ylabel = 'Grad\n(local)')
     
+    fig_local.savefig('../results/Local_attributions_gradient.jpg', bbox_inches = 'tight', dpi = 250)
+    
     # compute gradient times input ( global attributions to 0 reference)
     t1 = time.time()
     grad_global = takegrad(x, model, tracks = track, output = 'global', device = None, baseline = np.zeros(b))
@@ -67,6 +69,8 @@ if __name__ == '__main__':
     
     grad_global0 = grad_global[vis_seq,0][...,900:1100]
     fig_global = plot_attribution(grad_global0, heatmap = grad_global0, ylabel = 'Gradxinput\n(global)')
+    
+    fig_global.savefig('../results/Global_attributions_gradient.jpg', bbox_inches = 'tight', dpi = 250)
     
     '''
     Other backpropagation based methods approximate the linear function in a larger regime from sequence of interest to a baseline sequence sb. The baseline is often defined as a sequence with neutral prediction, or even more stringent as the “closest sequence” to the sequence with neutral prediction. These methods guarantee completeness, also known as efficiency. Completeness guarantees that the sum of all global attributions will be equal to the difference of the function between the baseline and the sequence of interest, a constraint of the feature attribution method that can be useful for some situations.
@@ -102,7 +106,7 @@ if __name__ == '__main__':
     meaneffect_tism = -np.sum(tism0/3, axis = -2)[None,:] * x[vis_seq]
     fig_tism = plot_attribution(meaneffect_tism[...,900:1100], heatmap = tism0[...,900:1100], ylabel = 'Mean\nTISM')
 
-
+    fig_tism.savefig('../results/TISM_mean.jpg', bbox_inches = 'tight', dpi = 250)
     
     # compute ISM effects
     t1 = time.time()
@@ -113,6 +117,9 @@ if __name__ == '__main__':
     ism0 = ism_array[vis_seq,0]
     meaneffect_ism = -np.sum(ism0/3, axis = -2)[None,:] * x[vis_seq]
     fig_ism = plot_attribution(meaneffect_ism[...,900:1100], heatmap = ism0[...,900:1100], ylabel = 'Mean\nISM')
+    
+    fig_ism.savefig('../results/ISM_mean.jpg', bbox_inches = 'tight', dpi = 250)
+    
     
     # Compare ISM to TISM
     print('ISM versus TISM')
@@ -145,6 +152,8 @@ if __name__ == '__main__':
     grad_hypothetical_uniform0 = grad_hypothetical_uniform[vis_seq,0]
     fig_hypothetical = plot_attribution(grad_hypothetical_uniform0[...,900:1100], heatmap = grad_hypothetical_uniform0[...,900:1100], ylabel = 'Grad_uni\n(hypo)')
     
+    fig_corrected.savefig('../results/Corrected_gradients.jpg', bbox_inches = 'tight', dpi = 250)
+    
     '''
     To visualize and identify sequence motifs from ISM, ISM values at all loci are often centered around the mean effect, so that the effect of the reference base becomes the negative mean of the effects from replacing it with the other four bases. 
     IC(j) =I(j)-14i{A,C,G,T}I(i)		(12)
@@ -161,6 +170,8 @@ if __name__ == '__main__':
     ism_hypo0 = ism_hypothetical[vis_seq,0]
     fig_ismhyp0 = plot_attribution(ism_hypo0[...,900:1100], heatmap = ism_hypo0[...,900:1100], ylabel = 'ISM_Centered\n(hypo)')
     
+    fig_ismhyp0.savefig('../results/CenteredISM_hypothetical.jpg', bbox_inches = 'tight', dpi = 250)
+    
     '''
     With the definition of hypothetical attribution scores we can theoretically link all commonly used attribution methods for genomic sequence-to-function models. Previously practitioners used to process different methods intuitively. While previous work has provided unifying views on the different attribution generating methods (i.e. the algorithm that produces the multipliers), none of these has focused on the choice of reference or their downstream processing. Here, we explained how the default output of different methods can be different types of attributions, and how we can process the output of different methods consistently to make them comparable. Comparing different types of attribution scores does not make sense since distinct processing will make them different by definition. For example, comparison between gradients with centered ISM values cannot yield the same motifs since they represent two different things. 
     '''
@@ -176,6 +187,7 @@ if __name__ == '__main__':
     grad_deeplift0 = grad_deeplift_hypothetical[vis_seq,0]
     fig_deeplift = plot_attribution(grad_deeplift0[...,900:1100], heatmap = grad_deeplift0[...,900:1100], ylabel = 'DeepLift\n(hypo)')
     
+    fig_deeplift.savefig('../results/DeepLift_hypothetical.jpg', bbox_inches = 'tight', dpi = 250)
     
     # Now let's compare these attributions with each other
 

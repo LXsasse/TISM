@@ -19,7 +19,9 @@ In this example, we're using the precomputed DeepSEA model, which can be downloa
 
 `
 mkdir data
+
 cd data
+
 wget https://zenodo.org/record/3402406/files/deepsea.beluga.pth
 `
 

@@ -39,7 +39,6 @@ if __name__ == '__main__':
     tracks = 1
     track = 0
     
-    '''
     input_length = 1000
     
     # compare two models:
@@ -111,7 +110,7 @@ if __name__ == '__main__':
         comptimes.append([t2-t1,t2d-t1d])
         runtimes.append(comptimes)
         
-        ''
+        '''
         # Compare ISM to TISM
         print('ISM versus TISM')
         for i in range(np.shape(grad_tism)[0]):
@@ -126,7 +125,7 @@ if __name__ == '__main__':
         for i in range(np.shape(grad_tism)[0]):
             print(i, pearsonr(yuzu_isms[i].flatten(), ism_isms[i].flatten())[0])
     
-        ''
+        '''
         
     fig = plot_bars(runtimes, xticklabels = Ns, ylabel = 'time in sec', color = ['cornflowerblue', 'goldenrod', 'indigo'], labels = ['TISM', 'Yuzu', 'ISM'], title = ['AI-TAC', 'AI-TACDeep'], xlabel = 'N')
     figh = plot_bars(runtimes, xticklabels = Ns, ylabel = 'time in sec', color = ['cornflowerblue', 'goldenrod', 'indigo'], labels = ['TISM', 'Yuzu', 'ISM'], title = ['AI-TAC', 'AI-TACDeep'], horizontal = True, xlabel = 'N')
@@ -142,7 +141,6 @@ if __name__ == '__main__':
     if '--show' in sys.argv:
         plt.show()
         
-    '''
     
     N = 10
     

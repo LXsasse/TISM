@@ -81,14 +81,18 @@ def takegrad(x, model, tracks = None, output = 'corrected', device = None,
     if isinstance(baseline, torch.Tensor):
         baseline = baseline.detach().cpu().numpy()
     
-    # baseline can be basepair frequencies, single sequence of frequencies, or set of sequences
+    # baseline can be basepair frequencies, single sequence of frequencies, or
+    # set of sequences
     if baseline is not None:
         if np.shape(baseline) != x.size():
             # always need to expand baseline to number of data points to 
-            baseline = np.repeat(np.expand_dims(baseline, 0), x.size(0), axis = 0)
-            # if only frequencies were given, need to expand it along the length of the sequences
+            baseline = np.repeat(np.expand_dims(baseline, 0), x.size(0), 
+                    axis = 0)
+            # if only frequencies were given, need to expand it along the
+            # length of the sequences
             if np.shape(baseline) != x.size():
-                baseline = np.repeat(np.expand_dims(baseline, seqlen_axis), x.size(seqlen_axis), axis = seqlen_axis)
+                baseline = np.repeat(np.expand_dims(baseline, seqlen_axis),
+                        x.size(seqlen_axis), axis = seqlen_axis)
             
     if isinstance(tracks, int):
         tracks = [tracks]
@@ -107,13 +111,15 @@ def takegrad(x, model, tracks = None, output = 'corrected', device = None,
         # collects gradients over selected tracks
         grad_per_track = []
         pred = model.forward(xi.to(device))
-        # My models can return list of tensors, e.g. if you want to predict different data modalities
+        # My models can return list of tensors, e.g. if you want to predict
+        # different data modalities
         if isinstance(pred, list):
             pred = torch.cat(pred, axis = 1)
         if tracks is None: # use all output tracks as default
             tracks = torch.arange(pred.size(dim = -1), dtype = int)
         
-        # iterate over the selected tracks (columns of output matrix) and collect gradients
+        # iterate over the selected tracks (columns of output matrix) and 
+        # collect gradients
         for t, tr in enumerate(tracks):
             pred[0, tr].backward(retain_graph = True)
             gr = xi.grad.clone().cpu().numpy()
@@ -124,26 +130,71 @@ def takegrad(x, model, tracks = None, output = 'corrected', device = None,
     
     # gradient outputs are by default 'local' attributions, aka multipliers
     # adjust local attributions to user definition
-    grad = correct_multipliers(grad, output, x.detach().cpu().numpy(), baseline, channel_axis = channel_axis)
+    grad = correct_multipliers(grad, output, x.detach().cpu().numpy(),
+            baseline, channel_axis = channel_axis)
         
     return grad
 
 
 # Function to normalize and correct attributions/values at a loci
-def correct_multipliers(grad, # array of values that will be corrected
-                        output, # type of correction, see below
-                        x = None, # the sequence from which the values were generated
-                        baseline = None, # the baseline to which values were computed
-                        channel_axis = -2 # the axis of the bases, in my models inputs are of shape (N_samples, n_bases, l_seqs)
-                        ):
-    if output == 'corrected': # corrected gradients as defined by Majdandzic et al. 2023, https://link.springer.com/article/10.1186/s13059-023-02956-3
-        grad = grad - np.mean(grad, axis = channel_axis)[..., None, :]
-    elif output == 'global': # global attributions, see "A unified view on gradient attribution methods for deep neural networks", Ancona et al. 2017 DOI:10.3929/ETHZ-B-000237705
+def correct_multipliers(grad, output, x = None, baseline = None, 
+        channel_axis = -2 ):
+    """
+    This function will take a numpy array of attributions scores and
+    transform them between local, global, hypothetical, or baseline attributions. 
+    
+    Parameters
+    ----------
+    grad: numpy.array, shape=(N_data_points, N_tracks, N_bases, Length)
+
+    output: str
+    Determines normalization of grad,
+    can be, 'global', 'corrected', 'hypothetical', or '(t)ism'
+    'global' multiplies gradients with the
+    difference between x and a provided baseline. 'corrected' removes the
+    mean of every position from the gradients,
+    see https://doi.org/10.1186/s13059-023-02956-3 for more info.
+    'hypothetical' returns normalized gradients based on the definition on
+    tfmodisco https://github.com/kundajelab/tfmodisco/issues/5
+    'tism' subtracts the gradient at the references base at each position to
+    approximate ISM values.
+
+    x: numpy.array, shape=(N_data_points, N_bases, Length)
+    One-hot encoded sequence of interest for which attributions were computed
+    
+    baseline: numpy.array, shape(N_data_points, N_bases, Length) 
+    One-hot encoded baseline sequences to which some attributions were computed
+
+    channel_axis: int
+    axis of channels in arrays, i.e. the bases for DNA, normally that is -2 for
+    
+    Returns
+    -------
+    grad : np.array, shape (N_data_points, N_tracks, N_bases, Length)
+    The processed attribution array.
+
+    """
+
+    if output == 'corrected': # corrected gradients as defined by Majdandzic
+        # et al. 2023, 
+        # https://link.springer.com/article/10.1186/s13059-023-02956-3
+        grad = grad - np.expand_dims(np.mean(grad, axis = channel_axis), 
+                channel_axis)
+    elif output == 'global': # global attributions, see "A unified view on 
+        # gradient attribution methods for deep neural networks", 
+        # Ancona et al. 2017 DOI:10.3929/ETHZ-B-000237705
         grad = grad * (x- baseline)[:,None]
-    elif output == 'hypothetical': # hypothetical attributions are a third type of correction that give a sense of what importance would be placed on a different base in the sequence if that base were present. See here: https://github.com/kundajelab/tfmodisco/issues/5
-        # They are important for motif detection and clustering in TFmodisco https://arxiv.org/abs/1811.00416
-        grad = grad - np.expand_dims(np.sum(baseline * grad, axis = channel_axis), channel_axis)
+    elif output == 'hypothetical': # hypothetical attributions are a third 
+        # type of correction that give a sense of what importance would be 
+        # placed on a different base in the sequence if that base were present.
+        # See here: https://github.com/kundajelab/tfmodisco/issues/5
+        # They are important for motif detection and clustering in TFmodisco 
+        # https://arxiv.org/abs/1811.00416
+        grad = grad - np.expand_dims(np.sum(baseline * grad, 
+            axis = channel_axis), channel_axis)
     elif 'ISM' in output.upper():
-        # returns effects for every base-pair substitution, i.e apprximation of f(x0)-f(x1), for which x0 and x1 differ between one base pair.
-        grad = grad - np.expand_dims(np.sum(grad * x[:,None], axis = channel_axis), channel_axis)
+        # returns effects for every base-pair substitution, i.e apprximation of
+        # f(x0)-f(x1), for which x0 and x1 differ between one base pair.
+        grad = grad - np.expand_dims(np.sum(grad * x[:,None], 
+            axis = channel_axis), channel_axis)
     return grad

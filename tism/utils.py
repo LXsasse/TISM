@@ -51,14 +51,19 @@ def deepliftshap(
     if baseline is not None:
         if baseline.size() != x.size():
             # always need to expand baseline to number of data points to 
-            baseline = baseline.unsqueeze(0).expand((x.size(0),) + tuple(baseline.size()))
-            # if only frequencies were given, need to expand it along the length of the sequences
+            baseline = baseline.unsqueeze(0).expand((x.size(0),) + 
+                    tuple(baseline.size()))
+            # if only frequencies were given, need to expand it along the 
+            # length of the sequences
             if baseline.size() != x.size():
-                baseline = baseline.unsqueeze(-1).expand(tuple(baseline.size())+(x.size(-1),))
+                baseline = baseline.unsqueeze(-1).expand(tuple(baseline.size())
+                        +(x.size(-1),))
 
     grad = []
     for t, tr in enumerate(tracks):
-        gr = deep_lift_shap(model, x, target = tr, references = baseline.unsqueeze(1), device=device, raw_outputs = True)
+        gr = deep_lift_shap(model, x, target = tr, 
+                references = baseline.unsqueeze(1), device=device,
+                raw_outputs = True)
         grad.append(np.mean(gr.cpu().detach().numpy(), axis = 1))
     
     grad = np.array(grad)
@@ -77,7 +82,9 @@ def ism(x,
         batch_size = 512,
         ):
     '''
-    This function performs three mutagenesis experiments for each location to determine what would happen if the base at that position was mutated into one of the other three bases. 
+    This function performs three mutagenesis experiments for each location 
+    to determine what would happen if the base at that position was mutated 
+    into one of the other three bases. 
     '''
     
     x = torch.Tensor(x).to(device)
@@ -92,7 +99,8 @@ def ism(x,
     refpred = model.forward(x)
     refpred = refpred.detach().cpu().numpy()
     
-    # Some models have distinct output heads, for different species or different modalities.
+    # Some models have distinct output heads, for different species or different
+    # modalities.
     if isinstance(refpred, list):
         refpred = np.concatenate(refpred, axis = 1)
     
@@ -127,14 +135,16 @@ def ism(x,
         
         altpred = np.concatenate(altpred, axis = 0)
         altpred = altpred[...,tracks]
-        # Assign difference between original and alternative predictions to the bases. 
+        # Assign difference between original and alternative predictions to the
+        # bases. 
         for j in range(len(isnot[0])):
             ismout[i, isnot[0][j], isnot[1][j]] = altpred[j] - refpred[i]
             
     ismout = np.swapaxes(np.swapaxes(ismout, 1, -1), -1,-2)
     return ismout
 
-# plot attribution maps with logomaker and plot individual values as heatmap below. 
+# plot attribution maps with logomaker and plot individual values as 
+# heatmap below. 
 def plot_attribution(att, # attribution map
                      heatmap = None, # heatmap below
                      figscale = 0.15, 
@@ -153,9 +163,11 @@ def plot_attribution(att, # attribution map
             if heatmap == 'use_attribution':
                 heatmap = np.copy(att)
     
-    fig = plt.figure(figsize = (figscale*np.shape(att)[1], (10+5*int(hasheat))*figscale), dpi = 50)
+    fig = plt.figure(figsize = (figscale*np.shape(att)[1], 
+        (10+5*int(hasheat))*figscale), dpi = 50)
     ax0 =  fig.add_subplot(1+int(hasheat), 1, 1)
-    ax0.set_position([0.1,0.1+(5*int(hasheat)/(10+5*int(hasheat)))*0.8,0.8,0.8*(10/(10+5*int(hasheat)))])
+    ax0.set_position([0.1,0.1+(5*int(hasheat)/(10+5*int(hasheat)))*0.8,0.8,
+        0.8*(10/(10+5*int(hasheat)))])
     ax0.spines['top'].set_visible(False)
     ax0.spines['right'].set_visible(False)
     ax0.tick_params(bottom = not(hasheat), labelbottom = not(hasheat))
@@ -181,21 +193,27 @@ def plot_attribution(att, # attribution map
         ax1 =fig.add_subplot(212)
         ax1.spines['top'].set_visible(False)
         ax1.spines['right'].set_visible(False)
-        ta_ = ax1.imshow(heatmap, aspect = 'auto', cmap = 'coolwarm', vmin = -vlim, vmax = vlim)
+        ta_ = ax1.imshow(heatmap, aspect = 'auto', cmap = 'coolwarm', 
+                vmin = -vlim, vmax = vlim)
         ax1.set_yticks(np.arange(len(alphabet)))
         ax1.set_yticklabels(alphabet)
         ax1.set_position([0.1,0.1,0.8,0.8*(4/15)])
     
         axc =fig.add_subplot(991)
-        axc.imshow(np.linspace(0,1,101).reshape(-1,1), aspect = 'auto', cmap = 'coolwarm', vmin = 0, vmax = 1)
-        axc.set_position([0.9+0.25/np.shape(heatmap)[1],0.1,1/np.shape(heatmap)[1],0.8*(4/15)])
+        axc.imshow(np.linspace(0,1,101).reshape(-1,1), aspect = 'auto', 
+                cmap = 'coolwarm', vmin = 0, vmax = 1)
+        axc.set_position([0.9+0.25/np.shape(heatmap)[1],0.1,
+            1/np.shape(heatmap)[1],0.8*(4/15)])
         axc.set_yticks([0,100])
         axc.set_yticklabels([-round(vlim,2), round(vlim,2)])
-        axc.tick_params(bottom = False, labelbottom = False, labelleft = False, left = False, labelright = True, right = True)
+        axc.tick_params(bottom = False, labelbottom = False, labelleft = False,
+                left = False, labelright = True, right = True)
     
     return fig
 
-def plot_bars(x, width = 0.8, xticklabels=None, xlabel = None, ylabel=None, ylim=None, color = None, figsize = (3.5,3.5), labels = None, title = None, horizontal = False):
+def plot_bars(x, width = 0.8, xticklabels=None, xlabel = None, ylabel=None, 
+        ylim=None, color = None, figsize = (3.5,3.5), labels = None, 
+        title = None, horizontal = False):
     
     """
     Parameter
@@ -225,9 +243,11 @@ def plot_bars(x, width = 0.8, xticklabels=None, xlabel = None, ylabel=None, ylim
    
     if len(np.shape(x)) > 2:
         if horizontal: 
-            fig = plt.figure(figsize = (figsize[0]* np.shape(x)[-1], figsize[1]))
+            fig = plt.figure(figsize = (figsize[0]* np.shape(x)[-1], 
+                figsize[1]))
         else:
-            fig = plt.figure(figsize = (figsize[0], figsize[1] * np.shape(x)[-1]))
+            fig = plt.figure(figsize = (figsize[0], 
+                figsize[1] * np.shape(x)[-1]))
         
         for a in range(np.shape(x)[-1]):
             if horizontal:
@@ -242,7 +262,8 @@ def plot_bars(x, width = 0.8, xticklabels=None, xlabel = None, ylabel=None, ylim
                     plotlabel = None
                 else:
                     plotlabel = labels[p]
-                ax.bar(pos, x[:,p,a],  width = width, color = color[p], label = plotlabel)
+                ax.bar(pos, x[:,p,a],  width = width, color = color[p], 
+                        label = plotlabel)
             
             if labels is not None:
                 ax.legend()
@@ -293,7 +314,8 @@ def plot_bars(x, width = 0.8, xticklabels=None, xlabel = None, ylabel=None, ylim
                     plotlabel = None
                 else:
                     plotlabel = labels[p]
-                ax.bar(pos, x[:,p], width = width, color = color[p], label = plotlabel)
+                ax.bar(pos, x[:,p], width = width, color = color[p], 
+                        label = plotlabel)
         else:
             ax.bar(positions, x, width = width, color = color, label = label)
         if labels is not None:
@@ -323,12 +345,17 @@ def write_table(data, outname, rows, columns = None, additional = None):
     if len(np.shape(data)) == 1:
         data = data.reshape(-1,1)
     if len(np.shape(data)) == 2:
-        np.savetxt(outname, np.append(np.array(rows).reshape(-1,1) , data, axis = 1), fmt = '%s', header = ' '.join(columns), delimiter = '\t')
+        np.savetxt(outname, np.append(np.array(rows).reshape(-1,1), 
+            data, axis = 1), fmt = '%s', header = ' '.join(columns), delimiter = '\t')
     elif len(np.shape(data)) == 3:
         if additional is None:
             additional = np.arange(np.shape(data)[-1], dtype = int)
         for a, add in enumerate(additional):
-            np.savetxt(os.path.splitext(outname)[0] + '_' + add + os.path.splitext(outname)[1], np.append(np.array(rows).reshape(-1,1) , data[..., a], axis = 1), fmt = '%s', header = ' '.join(np.array(columns)), delimiter = '\t')
+            np.savetxt(os.path.splitext(outname)[0] + '_' + add + 
+                    os.path.splitext(outname)[1], 
+                    np.append(np.array(rows).reshape(-1,1), 
+                        data[..., a], axis = 1), fmt = '%s', 
+                    header = ' '.join(np.array(columns)), delimiter = '\t')
     
 
     

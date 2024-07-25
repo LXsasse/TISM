@@ -2,7 +2,7 @@ absl-py==1.0.0
 alabaster==0.7.12
 Babel==2.10.3
 Brotli @ file:///croot/brotli-split_1714483155106/work
-certifi==2020.11.8
+certifi==2024.7.4
 charset-normalizer @ file:///tmp/build/80754af9/charset-normalizer_1630003229654/work
 cycler==0.10.0
 deepTools==3.5.1

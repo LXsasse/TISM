@@ -76,7 +76,7 @@ tenacity==8.0.1
 texttable==1.6.4
 threadpoolctl==2.1.0
 -e git+https://github.com/LXsasse/TISM.git@dd342a47cf2860dfa8cd7170eab126ee7f78d689#egg=tism
-torch==1.10.1+cpu
+torch==2.2.0
 torchaudio==0.10.1+cpu
 torchvision==0.11.2+cpu
 tqdm==4.66.4

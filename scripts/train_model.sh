@@ -1,7 +1,25 @@
-# Train model variants
+# Download mouse mm10 genome with
+mkdir mm10
+cd mm10
+for i in {1..19}
+do
+wget --timestamping 'ftp://hgdownload.cse.ucsc.edu/goldenPath/mm10/chromosomes/chr'${i}'.fa.gz' -O chr${i}.fa.gz
+done
 
-infile='seq250.npz' # one-hot encoded sequences of length 250bp
-outfile='atac.csv' # log-scaled atac-seq counts for each peak
+# create fasta files with sequences of 250bp length
+processdir=/home/to/DRG/scripts/train_models
+python ${processdir}/generate_fasta_from_bedgtf_and_genome.py mm10/ ImmGenATAC1219.peak_matched.txt 
+
+# Precompute one-hot encodings
+python ${processdir}/transform_seqtofeature.py mm10ImmGenATAC1219.peak_matched.fasta
+
+
+
+# Train model variants
+ln -s mm10ImmGenATAC1219.peak_matched_onehot-ACGT_alignleft.npz seq250.npz
+ln -s mouse_peak_heights.csv atac.csv
+infile='seq250.npz' # one-hot encoded sequences of length 250bp, create softlink to rename to shorter version
+outfile='atac.csv' # log-scaled atac-seq counts for each peak, create softlink to rename to shorter
 
 del=',' # delimiter for outfile
 cv=0 # crossvalidation set
@@ -31,7 +49,7 @@ baseline_model='loss_function=Correlationmse+validation_loss=Correlationdata+num
 # Training parameters
 training='epochs=200+patience=15+lr=5e-7+batchsize='${bs}'+optimizer=SGD+optim_params=0.9+init_epochs=0+init_adjust=True+shift_sequence=10+random_shift=True+device=cuda:'${cuda}'+keepmodel=True+seed='${i}
 # defined set of sequences that are in the validation and test set
-cvset=ImmGenATAC1219.peak_matchedtestsetschr81119.txt
+cvset=../data/ImmGenATAC1219.peak_matchedtestsetschr81119.txt
 
 traindir=/home/to/DRG/scripts/train_models
 

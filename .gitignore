@@ -1,4 +1,6 @@
 *.egg-info
-data
+data/deepsea.beluga.pth
+data/Quickfitmodel_parameter.pth
+tests
 .ipynb_checkpoints
 tutorials/.ipynb_checkpoints

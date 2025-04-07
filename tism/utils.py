@@ -164,6 +164,7 @@ def ism(x,
         If 'ism', the ism values are returned for each base that was mutated.
         If 'ism_attributions', the mean of each position is subtracted from the ism
         values.
+        If 'predictions' the predictions are returned for each base that was mutated.
         If 'mean_effects', the mean effect of each of the three substituions
         is subtracted from the ism
     multiply_by_inputs : bool   
@@ -195,7 +196,7 @@ def ism(x,
     # sequences.
     refpred = []
     for i in range(0, x.shape[0], batch_size):
-        refpred.append( model.forward(x[i:i+batch_size]).detach().cpu().numpy())
+        refpred.append( model.forward(x[i:i+batch_size].to(device)).detach().cpu().numpy())
     refpred = np.concatenate(refpred, axis = 0)
     
     # Some models have distinct output heads, for different species or different
@@ -226,7 +227,7 @@ def ism(x,
         # Predict activity of these alternative sequences
         altpred = []
         for j in range(0, xalt.shape[0], batch_size):
-            altpr = model.forward(xalt[j:j+batch_size])
+            altpr = model.forward(xalt[j:j+batch_size].to(device))
             altpr = altpr.detach().cpu().numpy()
             if isinstance(altpr,list):
                 altpr = np.concatenate(altpr,axis =-1)
@@ -236,19 +237,26 @@ def ism(x,
         altpred = altpred[...,tracks]
         # Assign difference between original and alternative predictions to the
         # bases. 
-        for j in range(len(isnot[0])):
-            ismout[i, isnot[0][j], isnot[1][j]] = altpred[j] - refpred[i]
+        if output == 'predictions':
+            ismout[i][:] = refpred[i]
+            for j in range(len(isnot[0])):
+                ismout[i, isnot[0][j], isnot[1][j]] = altpred[j]
+        else:
+            for j in range(len(isnot[0])):
+                ismout[i, isnot[0][j], isnot[1][j]] = altpred[j] - refpred[i]
             
     ismout = np.swapaxes(np.swapaxes(ismout, 1, -1), -1,-2)
+    
     # Correct the multipliers depending on the output type
-    if output == 'ism':
+    if output == 'ism' or output == 'predictions':
+        # no correction needed
         pass
     elif output == 'ism_attributions':
         ismout = ismout - np.mean(ismout, axis = -2, keepdims = True)
     elif output == 'mean_effects':
         ismout = ismout - np.sum(ismout, axis = -2, keepdims = True)/(ismout.shape[-2]-1)
 
-    if multiply_by_inputs and output != 'ism':
+    if multiply_by_inputs and output != 'ism' and output != 'predictions':
         # multiply the gradients by the inputs
         ismout = ismout * x.unsqueeze(1)
     return ismout
@@ -369,7 +377,7 @@ def plot_attribution(att, # attribution map
     
         axc =fig.add_subplot(991)
         axc.imshow(np.linspace(0,1,101).reshape(-1,1), aspect = 'auto', 
-                cmap = 'coolwarm', vmin = 0, vmax = 1)
+                cmap = 'coolwarm', vmin = 0, vmax = 1, origin = 'lower')
         axc.set_position([0.9+0.25/np.shape(heatmap)[1],0.1,
             1/np.shape(heatmap)[1],0.8*(4/15)])
         axc.set_yticks([0,100])
